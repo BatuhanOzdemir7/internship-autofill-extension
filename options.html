@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="ui.css"><title>Profil Ayarları - Form Asistanı</title></head>
+<body>
+  <main class="shell">
+    <header class="brand"><div class="brand-mark" aria-hidden="true">F</div><div><h1>Başvuru profiliniz</h1><p class="subtitle">Bilgiler yalnızca bu tarayıcıda saklanır.</p></div></header>
+    <form id="profileForm" class="card">
+      <h2>Profil bilgileri</h2>
+      <div id="profileFields" class="grid"></div>
+      <p class="hint">Dil, teknoloji ve becerileri virgülle ayırabilirsiniz. Ad ve soyadınızdan tam adınız otomatik oluşturulur.</p>
+      <div class="actions"><button type="submit">Kaydet</button><span id="saveStatus" class="status" role="status" aria-live="polite"></span></div>
+    </form>
+    <section class="card">
+      <h2>Bilgi öğrenme</h2>
+      <div class="toggle-row"><input id="autoLearnToggle" type="checkbox"><label for="autoLearnToggle"><strong>Otomatik öğrenme önerilerini etkinleştir</strong><br><span class="hint">Açık olduğunda, profilde bulunmayan bir alanı doldurduğunuzda kaydetme seçeneği gösterilir. Varsayılan olarak kapalıdır.</span></label></div>
+      <div id="learnStatus" class="status" role="status" aria-live="polite"></div>
+    </section>
+    <section class="card">
+      <h2>Öğrenilen alanlar</h2>
+      <div id="learnedFields" class="learned-list"><p class="hint">Yükleniyor…</p></div>
+    </section>
+    <section class="card">
+      <h2>Gizlilik</h2>
+      <p class="notice">Profiliniz ve öğrenilen alanlar yalnızca tarayıcınızda kalır. Devlet kimlik numaralarını, parolaları veya finansal bilgileri kaydetmeyin.</p>
+    </section>
+    <section class="card">
+      <h2>Yerel veriler</h2>
+      <p class="hint">Profiliniz, öğrenilmiş alanlarınız ve tercih ayarlarınız silinir.</p>
+      <div class="actions"><button id="clearButton" class="danger" type="button">Tüm Verileri Temizle</button><span id="clearStatus" class="status" role="status" aria-live="polite"></span></div>
+    </section>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

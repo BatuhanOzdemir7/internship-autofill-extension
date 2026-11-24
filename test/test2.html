@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Stress Test: Scenario 2 (Div Soup + Conversational Turkish)</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    display: flex; align-items: flex-start; justify-content: center;
+    min-height: 100vh; padding: 48px 16px; background: #f3f4f6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827;
+  }
+  .w1 { width: 480px; max-width: 100%; }
+  .w2 { background: #fff; border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.12); }
+  .w3 { padding: 28px 32px 30px; }
+  .hd { display: block; margin-bottom: 22px; }
+  .hd .s1 { font-size: 20px; font-weight: 700; }
+  .hd .s2 { display: block; margin-top: 4px; font-size: 13px; color: #6b7280; }
+
+  .a1 { margin-bottom: 22px; }
+  .a2 { padding: 0; }
+  .a3 { padding: 0; }
+  .a4 { display: block; }
+  .lb { display: block; margin-bottom: 8px; }
+  .lb .s1 { display: inline; font-size: 14px; font-weight: 600; color: #1f2937; }
+  .lb .s2 { display: inline; }
+  .a5 { padding: 0; }
+  .a6 { padding: 0; }
+  .a7 { padding: 0; }
+  .ht { display: block; margin-top: 6px; }
+  .ht .s1 { font-size: 12px; color: #9ca3af; }
+
+  .ed {
+    display: block; min-height: 42px; padding: 10px 12px; background: #fff;
+    border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; line-height: 22px;
+    white-space: nowrap; overflow: hidden; outline: none; cursor: text;
+  }
+  .ed:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
+  .ed:empty::before { content: attr(data-ph); color: #9ca3af; pointer-events: none; }
+
+  .dd { position: relative; }
+  .d1, .d2, .d3 { display: block; }
+  .tg {
+    display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px;
+    background: #fff; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer;
+  }
+  .tg:focus-within, .tg.on { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
+  .t1 { flex: 1; min-width: 0; display: block; }
+  .t2 {
+    display: block; min-height: 22px; padding: 10px 0; box-sizing: content-box;
+    font-size: 15px; line-height: 22px; white-space: nowrap; overflow: hidden;
+    outline: none; caret-color: transparent; cursor: pointer;
+  }
+  .t2:empty::before { content: attr(data-ph); color: #9ca3af; pointer-events: none; }
+  .ar { font-size: 12px; color: #6b7280; user-select: none; transition: transform .15s; }
+  .tg.on .ar { transform: rotate(180deg); }
+
+  .mn {
+    position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 20;
+    max-height: 220px; overflow-y: auto; background: #fff;
+    border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 10px 24px rgba(0,0,0,.14);
+  }
+  .m1, .m2 { display: block; padding: 0; }
+  .m2 { padding: 4px 0; }
+  .o1 { display: block; cursor: pointer; }
+  .o1:hover { background: #eff6ff; }
+  .o2 { display: block; padding: 10px 14px; }
+  .o3, .o4 { font-size: 14px; }
+
+  .gw { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .go {
+    display: inline-block; cursor: pointer; user-select: none;
+    padding: 11px 22px; border-radius: 8px; background: #2563eb; color: #fff; font-size: 15px;
+  }
+  .go:hover { background: #1d4ed8; }
+  .go .g1, .go .g2 { color: inherit; }
+
+  .rs {
+    margin-top: 18px; padding: 12px; min-height: 18px; background: #f9fafb;
+    border: 1px dashed #9ca3af; border-radius: 8px;
+    font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap;
+  }
+  .lg {
+    margin-top: 14px; padding: 10px 12px; max-height: 170px; overflow: auto;
+    background: #111827; color: #9ae6b4; border-radius: 8px;
+    font: 11px/1.6 ui-monospace, Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="w1"><div class="w2"><div class="w3">
+
+  <div class="hd">
+    <span class="s1">Biraz sohbet edelim, sizi tanıyalım</span>
+    <span class="s2">Formu doldurun, gerisini bize bırakın.</span>
+  </div>
+
+  <div class="a1"><div class="a2"><div class="a3"><div class="a4">
+    <div class="lb"><span class="s1"><span class="s2">Hangi ilim irfan yuvasından geliyorsunuz?</span></span></div>
+    <div class="a5"><div class="a6"><div class="a7">
+      <div class="ed" contenteditable="true" spellcheck="false" data-ph="Okulun adını buraya serpiştirin…" data-u></div>
+    </div></div></div>
+    <div class="ht"><span class="s1"><span>Kısaltma yok, tam adıyla buyurun.</span></span></div>
+  </div></div></div></div>
+
+  <div class="a1"><div class="a2"><div class="a3"><div class="a4">
+    <div class="lb"><span class="s1"><span class="s2">Peki o yuvada hangi bölümün kapısından girip çıkıyorsunuz?</span></span></div>
+    <div class="a5"><div class="a6"><div class="a7">
+      <div class="dd" data-dd>
+        <div class="d1"><div class="d2"><div class="d3">
+          <div class="tg" data-tg>
+            <span class="t1"><span class="t2" contenteditable="true" spellcheck="false" data-ph="Bir kapı seçiverin…" data-dv></span></span>
+            <span class="ar">▼</span>
+          </div>
+        </div></div></div>
+      </div>
+    </div></div></div>
+  </div></div></div></div>
+
+  <div class="gw">
+    <div class="go" data-go><span class="g1"><span class="g2">Tamamdır, yollayın gitsin</span></span></div>
+  </div>
+
+  <div class="rs" data-rs></div>
+  <div class="lg" data-lg></div>
+
+</div></div></div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const lg = $('[data-lg]');
+  const log = (m) => {
+    const d = document.createElement('div');
+    d.textContent = new Date().toISOString().slice(11, 23) + '  ' + m;
+    lg.prepend(d);
+    while (lg.children.length > 12) lg.lastChild.remove();
+  };
+
+  /* ---------- Contenteditable "text input" ---------- */
+  const uni = $('[data-u]');
+  uni.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+  uni.addEventListener('beforeinput', (e) => {
+    if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') e.preventDefault();
+  });
+  uni.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const t = (e.clipboardData || window.clipboardData).getData('text').replace(/\s*[\r\n]+\s*/g, ' ');
+    document.execCommand('insertText', false, t);
+  });
+  uni.addEventListener('input', () => {
+    if (!uni.textContent) uni.innerHTML = '';
+    log('university input: "' + uni.textContent + '"');
+  });
+
+  /* ---------- Contenteditable "dropdown" (strict pointerdown -> click) ---------- */
+  const OPTIONS = [
+    'Örnek Program', 'Elektrik-Elektronik Mühendisliği', 'Makine Mühendisliği',
+    'Endüstri Mühendisliği', 'İşletme', 'İktisat', 'Hukuk', 'Tıp', 'Psikoloji',
+    'Mimarlık', 'Türk Dili ve Edebiyatı', 'Matematik'
+  ];
+
+  const dd = $('[data-dd]');
+  const tg = $('[data-tg]', dd);
+  const dv = $('[data-dv]', dd);
+  let armed = null;
+  let value = '';
+  let menu = null;
+
+  // Display span is contenteditable but behaves read-only.
+  dv.addEventListener('beforeinput', (e) => e.preventDefault());
+  dv.addEventListener('drop', (e) => e.preventDefault());
+
+  const openMenu = () => {
+    menu = document.createElement('div');
+    menu.className = 'mn';
+    menu.innerHTML = '<div class="m1"><div class="m2">' + OPTIONS.map((t) =>
+      '<div class="o1"><div class="o2"><span class="o3"><span class="o4">' + t + '</span></span></div></div>'
+    ).join('') + '</div></div>';
+    menu.addEventListener('click', (e) => {
+      const o = e.target.closest('.o1');
+      if (!o) return;
+      value = o.textContent.trim();
+      dv.textContent = value;
+      log('option selected: "' + value + '"');
+      closeMenu();
+    });
+    dd.appendChild(menu);
+    tg.classList.add('on');
+    log('menu OPENED');
+  };
+
+  const closeMenu = () => {
+    if (!menu) return;
+    menu.remove();
+    menu = null;
+    tg.classList.remove('on');
+    log('menu CLOSED');
+  };
+
+  tg.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    armed = { id: e.pointerId, t: performance.now() };
+    log('pointerdown (isTrusted=' + e.isTrusted + ', type=' + e.pointerType + ') -> ARMED');
+  });
+  tg.addEventListener('pointercancel', () => { armed = null; log('pointercancel -> disarmed'); });
+  tg.addEventListener('click', () => {
+    const ok = armed && (performance.now() - armed.t) < 5000;
+    armed = null;
+    if (!ok) { log('click IGNORED (no valid preceding pointerdown)'); return; }
+    menu ? closeMenu() : openMenu();
+  });
+
+  // Runs after the trigger handler (bubble): clears any stale arm.
+  document.addEventListener('click', () => { armed = null; });
+
+  document.addEventListener('pointerdown', (e) => {
+    if (menu && !dd.contains(e.target)) closeMenu();
+  }, true);
+
+  /* ---------- Submit ---------- */
+  $('[data-go]').addEventListener('click', () => {
+    const data = { university: uni.textContent.trim(), department: value };
+    $('[data-rs]').textContent = JSON.stringify(data, null, 2);
+    window.__QA_RESULT__ = data;
+    log('SUBMIT: ' + JSON.stringify(data));
+    document.dispatchEvent(new CustomEvent('qa:submit', { detail: data }));
+  });
+})();
+</script>
+</body>
+</html>

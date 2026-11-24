@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Stress Test: Scenario 4 (SVG & Pseudo-Element Radio Trap)</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    display: flex; align-items: flex-start; justify-content: center;
+    min-height: 100vh; padding: 48px 16px; background: #f3f4f6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827;
+  }
+  .card {
+    width: 460px; max-width: 100%; background: #fff; border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.12); padding: 28px 32px 30px;
+  }
+  h1 { margin: 0 0 6px; font-size: 20px; }
+  .sub { margin: 0 0 22px; font-size: 13px; color: #6b7280; }
+
+  .grp { margin: 0 0 22px; padding: 0; border: 0; min-width: 0; }
+  .lgd { display: block; margin-bottom: 12px; font-size: 14px; font-weight: 600; color: #1f2937; }
+  .opts { display: flex; gap: 16px; }
+
+  /* Wrapper is a <div> on purpose: no native label->radio association */
+  .opt {
+    position: relative; flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 22px 12px 16px; background: #fff; cursor: pointer;
+    border: 2px solid #e5e7eb; border-radius: 12px; user-select: none; -webkit-user-select: none;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .opt:hover { border-color: #93c5fd; background: #f8fafc; }
+
+  /* Native radios: present in DOM, display: none */
+  .opt > input[type="radio"] { display: none; }
+
+  .opt svg { width: 72px; height: 72px; overflow: visible; }
+  .opt svg .st {
+    fill: none; stroke: #9ca3af; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round;
+    transition: stroke .15s;
+  }
+
+  /* ::before = fake radio badge drawn purely with CSS */
+  .opt::before {
+    content: ""; position: absolute; top: 10px; right: 10px; width: 20px; height: 20px;
+    border-radius: 50%; border: 2px solid #9ca3af; background: #fff;
+    transition: all .15s;
+  }
+  /* ::after = visible label text lives ONLY in CSS content (not in DOM text) */
+  .opt::after { font-size: 15px; font-weight: 600; color: #374151; }
+  .o-k::after { content: "Kadın"; }
+  .o-e::after { content: "Seçenek B"; }
+
+  .opt[data-on="true"] { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+  .opt[data-on="true"]::before { border-color: #2563eb; background: #2563eb; box-shadow: inset 0 0 0 4px #fff; }
+  .opt[data-on="true"] svg .st { stroke: #2563eb; }
+  .opt[data-on="true"]::after { color: #1d4ed8; }
+
+  .btn {
+    display: block; margin: 0 0 0 auto; padding: 11px 26px; border: 0; border-radius: 8px;
+    background: #2563eb; color: #fff; font-size: 15px; cursor: pointer;
+  }
+  .btn:hover { background: #1d4ed8; }
+
+  .rs {
+    margin: 18px 0 0; padding: 12px; min-height: 18px; background: #f9fafb;
+    border: 1px dashed #9ca3af; border-radius: 8px; white-space: pre-wrap;
+    font: 12px/1.5 ui-monospace, Menlo, monospace;
+  }
+  .lg {
+    margin-top: 14px; padding: 10px 12px; max-height: 210px; overflow: auto;
+    background: #111827; color: #9ae6b4; border-radius: 8px;
+    font: 11px/1.6 ui-monospace, Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Kişisel Bilgiler</h1>
+  <p class="sub">Lütfen cinsiyetinizi simgeye dokunarak seçin.</p>
+
+  <form id="frm" method="post" action="javascript:void(0)" novalidate autocomplete="off">
+    <div class="grp" role="radiogroup">
+      <span class="lgd">Cinsiyet</span>
+      <div class="opts">
+
+        <div class="opt o-k" role="radio" aria-checked="false" data-on="false">
+          <input type="radio" id="cns_k" name="cinsiyet" value="kadin">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <circle class="st" cx="32" cy="24" r="14"/>
+            <line class="st" x1="32" y1="38" x2="32" y2="58"/>
+            <line class="st" x1="22" y1="49" x2="42" y2="49"/>
+          </svg>
+        </div>
+
+        <div class="opt o-e" role="radio" aria-checked="false" data-on="false">
+          <input type="radio" id="cns_e" name="cinsiyet" value="option-b">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <circle class="st" cx="26" cy="38" r="14"/>
+            <line class="st" x1="36" y1="28" x2="55" y2="9"/>
+            <polyline class="st" points="40,9 55,9 55,24"/>
+          </svg>
+        </div>
+
+      </div>
+    </div>
+
+    <button type="submit" class="btn">Gönder</button>
+  </form>
+
+  <pre class="rs" id="out"></pre>
+  <div class="lg" id="log"></div>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const form = $('#frm'), out = $('#out'), logEl = $('#log');
+
+  const log = (m) => {
+    const d = document.createElement('div');
+    d.textContent = new Date().toISOString().slice(11, 23) + '  ' + m;
+    logEl.prepend(d);
+    while (logEl.children.length > 18) logEl.lastChild.remove();
+  };
+
+  const checkedDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked');
+  const opts   = Array.from(document.querySelectorAll('.opt'));
+  const radios = opts.map((o) => $('input[type="radio"]', o));
+
+  // Single source of truth: JS state, driven ONLY by clicks on SVG/wrapper.
+  let state = null;
+
+  const paint = () => {
+    opts.forEach((o, i) => {
+      const on = radios[i].value === state;
+      o.dataset.on = String(on);
+      o.setAttribute('aria-checked', String(on));
+      checkedDesc.set.call(radios[i], on); // silent sync, fires no events
+    });
+  };
+
+  // Wrapper / SVG click handler (SVG clicks bubble up to the wrapper)
+  opts.forEach((o, i) => {
+    o.addEventListener('click', (e) => {
+      if (e.target instanceof HTMLInputElement) {
+        log('wrapper ignored click originating from native radio');
+        return;
+      }
+      state = radios[i].value;
+      const tgt = e.target.closest('svg') ? 'svg' : 'wrapper';
+      log('UI click on ' + tgt + ' (trusted=' + e.isTrusted + ') -> state="' + state + '"');
+      paint();
+    });
+  });
+
+  // Native radio trap: any interaction with the hidden radios does nothing.
+  radios.forEach((r) => {
+    r.addEventListener('click', (e) => {
+      e.preventDefault();          // reverts native checked toggle
+      e.stopPropagation();         // never reaches the wrapper handler
+      log('NATIVE radio click IGNORED [' + r.value + '] (trusted=' + e.isTrusted + ')');
+      paint();
+    }, true);
+    ['change', 'input'].forEach((t) =>
+      r.addEventListener(t, (e) => {
+        e.stopPropagation();
+        log('NATIVE radio ' + t + ' IGNORED [' + r.value + ']');
+        paint();
+      }, true)
+    );
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const nativeBefore = radios.filter((r) => r.checked).map((r) => r.value);
+    const desync = radios
+      .filter((r) => r.checked !== (r.value === state))
+      .map((r) => r.value);
+
+    if (desync.length) {
+      log('DESYNC: native radio.checked was set directly (' + desync.join(',') + ') -> IGNORED, resynced to UI state');
+      paint();
+    }
+
+    const result = {
+      cinsiyet: state,
+      nativeCheckedBeforeResync: nativeBefore,
+      desyncIgnored: desync
+    };
+    out.textContent = JSON.stringify(result, null, 2);
+    window.__QA_RESULT__ = result;
+    log('SUBMIT: ' + JSON.stringify(result));
+    document.dispatchEvent(new CustomEvent('qa:submit', { detail: result }));
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>

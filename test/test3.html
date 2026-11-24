@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Stress Test: Scenario 3 (Event Listener Honeypot)</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    display: flex; align-items: flex-start; justify-content: center;
+    min-height: 100vh; padding: 48px 16px; background: #f3f4f6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827;
+  }
+  .card {
+    width: 460px; max-width: 100%; background: #fff; border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.12); padding: 28px 32px 30px;
+  }
+  h1 { margin: 0 0 6px; font-size: 20px; }
+  .sub { margin: 0 0 18px; font-size: 13px; color: #6b7280; }
+  .st {
+    margin-bottom: 20px; padding: 9px 12px; border-radius: 8px; font-size: 13px;
+    background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;
+  }
+  .st.bad { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .row { position: relative; margin-bottom: 18px; }
+  label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #1f2937; }
+  .fld {
+    width: 100%; padding: 11px 12px; font-size: 15px; background: #fff;
+    border: 1px solid #d1d5db; border-radius: 8px; outline: none;
+  }
+  .fld:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
+  .fld.wiped { border-color: #dc2626; animation: shk .4s; }
+  @keyframes shk {
+    0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); }
+  }
+  .tr {
+    margin-top: 6px; font: 11px/1.5 ui-monospace, Menlo, monospace; color: #6b7280;
+    word-break: break-all;
+  }
+
+  /* Visually hidden honeypot (still rendered, not display:none) */
+  .vh {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  .vh label { display: inline; margin: 0; }
+
+  .btn {
+    display: block; margin: 6px 0 0 auto; padding: 11px 26px; border: 0; border-radius: 8px;
+    background: #2563eb; color: #fff; font-size: 15px; cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { background: #1d4ed8; }
+  .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+  .rs {
+    margin-top: 18px; padding: 12px; min-height: 18px; background: #f9fafb;
+    border: 1px dashed #9ca3af; border-radius: 8px; white-space: pre-wrap;
+    font: 12px/1.5 ui-monospace, Menlo, monospace;
+  }
+  .lg {
+    margin-top: 14px; padding: 10px 12px; max-height: 210px; overflow: auto;
+    background: #111827; color: #9ae6b4; border-radius: 8px;
+    font: 11px/1.6 ui-monospace, Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>İletişim Bilgileri</h1>
+  <p class="sub">Bilgilerinizi eksiksiz girin, ardından gönderin.</p>
+  <div class="st" id="st">Durum: Temiz. Tuzaklar hazır.</div>
+
+  <form id="frm" method="post" action="javascript:void(0)" novalidate autocomplete="off">
+
+    <div class="vh" aria-hidden="true">
+      <label for="email">E-posta</label>
+      <input type="text" id="email" name="email" tabindex="-1" autocomplete="off">
+    </div>
+
+    <div class="row">
+      <label for="eposta">E-posta Adresiniz</label>
+      <input class="fld" type="email" id="eposta" name="eposta" placeholder="ornek@eposta.com" autocomplete="off">
+      <div class="tr" data-tr="eposta"></div>
+    </div>
+
+    <div class="row">
+      <label for="telefon">Telefon Numaranız</label>
+      <input class="fld" type="tel" id="telefon" name="telefon" placeholder="05XX XXX XX XX" autocomplete="off">
+      <div class="tr" data-tr="telefon"></div>
+    </div>
+
+    <button type="submit" class="btn" id="btn">Gönder</button>
+  </form>
+
+  <pre class="rs" id="out"></pre>
+  <div class="lg" id="log"></div>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const form = $('#frm'), btn = $('#btn'), out = $('#out'), logEl = $('#log'), stEl = $('#st');
+
+  const nDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  const nGet = (el) => nDesc.get.call(el);
+  const nSet = (el, v) => nDesc.set.call(el, v);
+
+  const log = (m) => {
+    const d = document.createElement('div');
+    d.textContent = new Date().toISOString().slice(11, 23) + '  ' + m;
+    logEl.prepend(d);
+    while (logEl.children.length > 18) logEl.lastChild.remove();
+  };
+
+  /* ---------------- Honeypot ---------------- */
+  const hp = $('#email');
+  let tripped = false;
+
+  const trip = (why) => {
+    if (tripped) return;
+    tripped = true;
+    btn.disabled = true;
+    stEl.textContent = 'Durum: Honeypot tetiklendi. Gönder düğmesi kalıcı olarak devre dışı.';
+    stEl.classList.add('bad');
+    window.__QA_HONEYPOT__ = { tripped: true, reason: why, value: nGet(hp) };
+    log('HONEYPOT TRIPPED via "' + why + '" (value="' + nGet(hp) + '") -> submit button DISABLED');
+  };
+  const checkHp = (why) => { if (nGet(hp) !== '') trip(why); };
+
+  Object.defineProperty(hp, 'value', {
+    configurable: true,
+    get() { return nGet(this); },
+    set(v) { nSet(this, v); checkHp('value-setter'); }
+  });
+  ['input', 'change', 'keydown', 'keyup', 'paste', 'focus', 'blur'].forEach((t) =>
+    hp.addEventListener(t, () => { checkHp(t); setTimeout(() => checkHp(t + '+0'), 0); })
+  );
+  new MutationObserver(() => checkHp('attribute-mutation'))
+    .observe(hp, { attributes: true, attributeFilter: ['value'] });
+  new MutationObserver(() => {
+    if (tripped && !btn.disabled) { btn.disabled = true; log('TAMPER: disabled attribute removed -> re-disabled'); }
+  }).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
+  setInterval(() => {
+    checkHp('poll');
+    if (tripped && !btn.disabled) btn.disabled = true;
+  }, 20);
+
+  /* ---------------- Strict event-order trap ---------------- */
+  const pretty = (seq) => seq.reduce((a, x) => {
+    const l = a[a.length - 1];
+    if (l && l.n === x) l.c++; else a.push({ n: x, c: 1 });
+    return a;
+  }, []).map((o) => (o.c > 1 ? o.n + '×' + o.c : o.n)).join(' → ');
+
+  const fields = [
+    { key: 'eposta',  el: $('#eposta'),  title: 'E-posta' },
+    { key: 'telefon', el: $('#telefon'), title: 'Telefon' }
+  ];
+
+  fields.forEach((f) => {
+    const s = (f.s = { seq: [], committed: '', progSets: 0 });
+    f.tr = document.querySelector('[data-tr="' + f.key + '"]');
+    const trace = () => {
+      f.tr.textContent = f.title + ': ' + (s.seq.length ? pretty(s.seq) : '(no events)') +
+        '  | committed="' + s.committed + '"';
+    };
+    trace();
+
+    // React-style instance-level value interception (diagnostic only).
+    Object.defineProperty(f.el, 'value', {
+      configurable: true,
+      get() { return nGet(this); },
+      set(v) {
+        s.progSets++;
+        log('[' + f.key + '] programmatic .value = "' + v + '" (no commit; awaiting focus->input->blur)');
+        nSet(this, v);
+      }
+    });
+
+    f.el.addEventListener('focus', (e) => {
+      s.seq = ['focus'];
+      log('[' + f.key + '] focus (trusted=' + e.isTrusted + ')');
+      trace();
+    });
+    f.el.addEventListener('input', (e) => {
+      s.seq.push('input');
+      log('[' + f.key + '] input (trusted=' + e.isTrusted + ')');
+      trace();
+    });
+    f.el.addEventListener('blur', (e) => {
+      s.seq.push('blur');
+      const str = s.seq.join(',');
+      if (/^focus(,input)+,blur$/.test(str)) {
+        s.committed = nGet(f.el);
+        log('[' + f.key + '] blur (trusted=' + e.isTrusted + ') -> strict sequence OK, COMMITTED "' + s.committed + '"');
+      } else if (str === 'focus,blur') {
+        log('[' + f.key + '] blur -> no input in this focus session, commit unchanged');
+      } else {
+        log('[' + f.key + '] blur -> INVALID sequence [' + str + '], commit unchanged');
+      }
+      trace();
+    });
+  });
+
+  /* Enter key: trusted keystrokes only; completes a native blur, then submits. */
+  form.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (!fields.some((f) => f.el === e.target)) return;
+    e.preventDefault();
+    if (!e.isTrusted) { log('synthetic Enter ignored'); return; }
+    if (tripped) return;
+    e.target.blur();
+    form.requestSubmit();
+  });
+
+  form.submit = () => form.requestSubmit();
+
+  btn.addEventListener('click', (e) => {
+    checkHp('click');
+    if (tripped) { e.preventDefault(); e.stopImmediatePropagation(); log('click BLOCKED (honeypot tripped)'); }
+  }, true);
+
+  /* ---------------- Submit (capture phase: wipe happens first) ---------------- */
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    checkHp('submit');
+    if (tripped) {
+      e.stopImmediatePropagation();
+      log('submit BLOCKED (honeypot tripped)');
+      return;
+    }
+
+    const wiped = {};
+    const data = {};
+    fields.forEach((f) => {
+      const cur = nGet(f.el);
+      if (cur !== f.s.committed) {
+        nSet(f.el, '');
+        f.s.committed = '';
+        if (cur !== '') {
+          wiped[f.key] = cur;
+          log('TRAP: [' + f.key + '] "' + cur + '" did not follow focus->input->blur -> WIPED');
+          f.el.classList.add('wiped');
+          setTimeout(() => f.el.classList.remove('wiped'), 900);
+        }
+      }
+      data[f.key] = nGet(f.el);
+    });
+
+    const result = Object.assign({}, data, {
+      honeypot: nGet(hp),
+      honeypotTripped: tripped,
+      wiped
+    });
+    out.textContent = JSON.stringify(result, null, 2);
+    window.__QA_RESULT__ = result;
+    log('SUBMIT: ' + JSON.stringify(result));
+    document.dispatchEvent(new CustomEvent('qa:submit', { detail: result }));
+
+    fields.forEach((f) => {
+      f.tr.textContent = f.title + ': ' + (f.s.seq.length ? pretty(f.s.seq) : '(no events)') +
+        '  | committed="' + f.s.committed + '"';
+    });
+  }, true);
+})();
+</script>
+</body>
+</html>

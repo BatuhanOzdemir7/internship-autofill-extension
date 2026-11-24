@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Stress Test: Scenario 1 (Closed Shadow DOM + Obfuscated Hash)</title>
+<style>
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: #f3f4f6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+</style>
+</head>
+<body>
+<script>
+(() => {
+  const used = new Set();
+  const hash = () => {
+    let v;
+    do {
+      v = 'x' + Math.random().toString(16).slice(2, 7) + '_' + Math.floor(10 + Math.random() * 90);
+    } while (used.has(v));
+    used.add(v);
+    return v;
+  };
+
+  const tagName = 'x-' + Math.random().toString(16).slice(2, 10);
+
+  class ObfuscatedForm extends HTMLElement {
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: 'closed' });
+
+      const cls = {
+        card: hash(), form: hash(), row: hash(), lbl: hash(),
+        inp: hash(), btn: hash(), out: hash(), ttl: hash()
+      };
+      const id  = { fn: hash(), ln: hash(), btn: hash(), out: hash(), form: hash() };
+      const nm  = { fn: hash(), ln: hash(), form: hash() };
+
+      root.innerHTML = `
+        <style>
+          .${cls.card} { background:#fff; padding:28px 32px; border-radius:12px;
+            box-shadow:0 8px 28px rgba(0,0,0,.12); width:420px; max-width:92vw; }
+          .${cls.ttl} { margin:0 0 20px; font-size:20px; color:#111827; }
+          .${cls.row} { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+          .${cls.lbl} { flex:0 0 90px; font-size:14px; font-weight:600; color:#374151; text-align:right; }
+          .${cls.inp} { flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; }
+          .${cls.inp}:focus { outline:2px solid #2563eb; border-color:#2563eb; }
+          .${cls.btn} { display:block; margin:8px 0 0 auto; padding:10px 24px; border:0; border-radius:8px;
+            background:#2563eb; color:#fff; font-size:15px; cursor:pointer; }
+          .${cls.out} { margin:18px 0 0; padding:12px; background:#f9fafb; border:1px dashed #9ca3af;
+            border-radius:8px; font:12px/1.5 ui-monospace, Menlo, monospace; white-space:pre-wrap; min-height:18px; }
+        </style>
+        <div class="${cls.card}">
+          <h2 class="${cls.ttl}">Kişisel Bilgiler</h2>
+          <form id="${id.form}" name="${nm.form}" class="${cls.form}" novalidate autocomplete="off">
+            <div class="${cls.row}">
+              <label class="${cls.lbl}">Ad</label>
+              <input type="text" id="${id.fn}" name="${nm.fn}" class="${cls.inp}">
+            </div>
+            <div class="${cls.row}">
+              <label class="${cls.lbl}">Soyad</label>
+              <input type="text" id="${id.ln}" name="${nm.ln}" class="${cls.inp}">
+            </div>
+            <button type="submit" id="${id.btn}" class="${cls.btn}">Gönder</button>
+          </form>
+          <pre id="${id.out}" class="${cls.out}"></pre>
+        </div>
+      `;
+
+      const form = root.getElementById(id.form);
+      const fn   = root.getElementById(id.fn);
+      const ln   = root.getElementById(id.ln);
+      const out  = root.getElementById(id.out);
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = { firstName: fn.value, lastName: ln.value };
+        out.textContent = JSON.stringify(data, null, 2);
+        window.__QA_RESULT__ = data;
+        console.log('[QA] Submitted:', data);
+        this.dispatchEvent(new CustomEvent('qa:submit', { detail: data, bubbles: true, composed: true }));
+      });
+    }
+  }
+
+  customElements.define(tagName, ObfuscatedForm);
+  document.body.appendChild(document.createElement(tagName));
+})();
+</script>
+</body>
+</html>

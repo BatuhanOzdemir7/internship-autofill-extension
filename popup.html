@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="ui.css"><title>Private Form Assistant</title></head>
+<body class="popup">
+  <main class="shell">
+    <header class="brand"><div class="brand-mark" aria-hidden="true">F</div><div><h1>Form Asistanı</h1><p class="subtitle">Yerel ve isteğe bağlı doldurma</p></div></header>
+    <section class="card">
+      <p id="profileStatus" class="status" role="status">Profil kontrol ediliyor…</p>
+      <button id="fillButton" type="button" disabled>Formu Doldur</button>
+      <div class="actions"><button id="optionsButton" class="secondary" type="button">Bilgilerimi Düzenle</button></div>
+      <p id="actionStatus" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

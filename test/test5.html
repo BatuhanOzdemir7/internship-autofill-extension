@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Stress Test: Scenario 5 (Multi-Step Lazy Rendered Form)</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    display: flex; align-items: flex-start; justify-content: center;
+    min-height: 100vh; padding: 48px 16px; background: #f3f4f6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827;
+  }
+  .card {
+    width: 460px; max-width: 100%; background: #fff; border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.12); padding: 28px 32px 30px;
+  }
+  h1 { margin: 0 0 18px; font-size: 20px; }
+  .ttl { margin: 0 0 18px; font-size: 16px; color: #374151; }
+
+  .steps { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .dot {
+    width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 13px; font-weight: 700; background: #e5e7eb; color: #6b7280; transition: all .2s;
+  }
+  .dot.on { background: #2563eb; color: #fff; box-shadow: 0 0 0 4px rgba(37,99,235,.18); }
+  .dot.done { background: #10b981; color: #fff; }
+  .bar { flex: 1; height: 3px; border-radius: 2px; background: #e5e7eb; }
+  .bar.done { background: #10b981; }
+
+  .row { margin-bottom: 18px; }
+  label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #1f2937; }
+  .fld {
+    width: 100%; padding: 11px 12px; font-size: 15px; background: #fff;
+    border: 1px solid #d1d5db; border-radius: 8px; outline: none;
+  }
+  .fld:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
+  .fld.bad { border-color: #dc2626; }
+  .err { min-height: 16px; margin-top: 5px; font-size: 12px; color: #dc2626; }
+
+  .nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; }
+  .nav.end { justify-content: flex-end; }
+  .btn {
+    padding: 11px 26px; border: 0; border-radius: 8px; background: #2563eb;
+    color: #fff; font-size: 15px; cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { background: #1d4ed8; }
+  .btn:disabled { background: #9ca3af; cursor: wait; }
+  .btn.ghost { background: #e5e7eb; color: #374151; }
+  .btn.ghost:hover:not(:disabled) { background: #d1d5db; }
+
+  .ldr { display: flex; align-items: center; gap: 12px; padding: 36px 0; color: #6b7280; font-size: 14px; }
+  .spn {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid #e5e7eb; border-top-color: #2563eb; animation: rot .7s linear infinite;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  .rs {
+    margin: 18px 0 0; padding: 12px; min-height: 18px; background: #f9fafb;
+    border: 1px dashed #9ca3af; border-radius: 8px; white-space: pre-wrap;
+    font: 12px/1.5 ui-monospace, Menlo, monospace;
+  }
+  .lg {
+    margin-top: 14px; padding: 10px 12px; max-height: 210px; overflow: auto;
+    background: #111827; color: #9ae6b4; border-radius: 8px;
+    font: 11px/1.6 ui-monospace, Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Başvuru Formu</h1>
+  <div class="steps" id="steps">
+    <span class="dot on" data-s="1">1</span>
+    <span class="bar" data-b="1"></span>
+    <span class="dot" data-s="2">2</span>
+  </div>
+  <div id="stage"></div>
+  <pre class="rs" id="out"></pre>
+  <div class="lg" id="log"></div>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const stage = $('#stage'), out = $('#out'), logEl = $('#log');
+
+  const log = (m) => {
+    const d = document.createElement('div');
+    d.textContent = new Date().toISOString().slice(11, 23) + '  ' + m;
+    logEl.prepend(d);
+    while (logEl.children.length > 20) logEl.lastChild.remove();
+  };
+
+  const probe = (why) => {
+    const ids = Array.from(document.querySelectorAll('input')).map((i) => i.id || i.name || '?');
+    log('DOM PROBE [' + why + ']: inputs=' + (ids.length ? ids.join(',') : 'none') +
+      ' | #mezuniyet=' + (document.getElementById('mezuniyet') ? 'PRESENT' : 'ABSENT'));
+  };
+
+  /* ---------- DOM factory helpers (no <template>, no hidden markup) ---------- */
+  const el = (tag, props = {}, kids = []) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'class') n.className = v;
+      else if (k === 'text') n.textContent = v;
+      else n.setAttribute(k, v);
+    }
+    kids.forEach((c) => n.appendChild(c));
+    return n;
+  };
+
+  const field = (labelText, inputProps, errId) => {
+    const row = el('div', { class: 'row' });
+    row.appendChild(el('label', { for: inputProps.id, text: labelText }));
+    const inp = el('input', Object.assign({ class: 'fld' }, inputProps));
+    const err = el('div', { class: 'err', id: errId, 'aria-live': 'polite' });
+    row.appendChild(inp);
+    row.appendChild(err);
+    inp.addEventListener('input', () => {
+      if (inp.value.trim()) { err.textContent = ''; inp.classList.remove('bad'); }
+    });
+    return { row, inp, err };
+  };
+
+  const state = { ad: '', soyad: '', yil: '' };
+  let busy = false;
+
+  const setStep = (n) => {
+    document.querySelectorAll('.dot').forEach((d) => {
+      const s = Number(d.dataset.s);
+      d.classList.toggle('on', s === n);
+      d.classList.toggle('done', s < n);
+    });
+    document.querySelector('.bar').classList.toggle('done', n > 1);
+  };
+
+  /* ---------- Step 1 ---------- */
+  const buildStep1 = () => {
+    const form = el('form', { id: 'adim1', novalidate: '', autocomplete: 'off', action: 'javascript:void(0)' });
+    form.appendChild(el('h2', { class: 'ttl', text: 'Temel Bilgiler' }));
+
+    const a = field('Ad', { type: 'text', id: 'ad', name: 'ad', placeholder: 'Adınız' }, 'e_ad');
+    const s = field('Soyad', { type: 'text', id: 'soyad', name: 'soyad', placeholder: 'Soyadınız' }, 'e_soyad');
+    a.inp.value = state.ad;
+    s.inp.value = state.soyad;
+
+    const btn = el('button', { type: 'submit', class: 'btn', id: 'ileri', text: 'İleri' });
+    const nav = el('div', { class: 'nav end' }, [btn]);
+
+    [a.row, s.row, nav].forEach((n) => form.appendChild(n));
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (busy) { log('NEXT ignored (injection in progress)'); return; }
+
+      const ad = a.inp.value.trim();
+      const soyad = s.inp.value.trim();
+      a.err.textContent = ad ? '' : 'Lütfen adınızı girin.';
+      s.err.textContent = soyad ? '' : 'Lütfen soyadınızı girin.';
+      a.inp.classList.toggle('bad', !ad);
+      s.inp.classList.toggle('bad', !soyad);
+
+      if (!ad || !soyad) {
+        log('NEXT BLOCKED: step 1 incomplete (ad="' + ad + '", soyad="' + soyad + '") -> step 2 NOT injected');
+        probe('after blocked next');
+        return;
+      }
+
+      state.ad = ad;
+      state.soyad = soyad;
+      busy = true;
+      btn.disabled = true;
+      log('NEXT accepted (trusted=' + (e.isTrusted) + ') -> tearing down step 1, injecting step 2 lazily…');
+
+      stage.replaceChildren(el('div', { class: 'ldr' }, [
+        el('div', { class: 'spn' }),
+        el('span', { text: 'Yükleniyor…' })
+      ]));
+      probe('loader shown');
+
+      setTimeout(() => {
+        stage.replaceChildren(buildStep2());
+        setStep(2);
+        busy = false;
+        log('STEP 2 INJECTED');
+        probe('after injection');
+        const y = $('#mezuniyet');
+        if (y) y.focus();
+      }, 450);
+    });
+
+    return form;
+  };
+
+  /* ---------- Step 2 (exists only as JS code until Next is accepted) ---------- */
+  const buildStep2 = () => {
+    const form = el('form', { id: 'adim2', novalidate: '', autocomplete: 'off', action: 'javascript:void(0)' });
+    form.appendChild(el('h2', { class: 'ttl', text: 'Eğitim Bilgisi' }));
+
+    const maxY = new Date().getFullYear() + 10;
+    const y = field('Mezuniyet Yılı', {
+      type: 'number', id: 'mezuniyet', name: 'mezuniyet', min: '1950', max: String(maxY),
+      step: '1', inputmode: 'numeric', placeholder: 'Örn. 2022'
+    }, 'e_mezuniyet');
+    y.inp.value = state.yil;
+
+    const back = el('button', { type: 'button', class: 'btn ghost', id: 'geri', text: 'Geri' });
+    const send = el('button', { type: 'submit', class: 'btn', id: 'gonder', text: 'Gönder' });
+    const nav = el('div', { class: 'nav' }, [back, send]);
+
+    [y.row, nav].forEach((n) => form.appendChild(n));
+
+    back.addEventListener('click', () => {
+      state.yil = y.inp.value;
+      log('BACK -> step 2 destroyed, step 1 rebuilt');
+      stage.replaceChildren(buildStep1());
+      setStep(1);
+      probe('after back');
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const raw = y.inp.value.trim();
+      const n = Number(raw);
+      if (!/^\d{4}$/.test(raw) || n < 1950 || n > maxY) {
+        y.err.textContent = '1950 ile ' + maxY + ' arasında geçerli bir yıl girin.';
+        y.inp.classList.add('bad');
+        log('SUBMIT BLOCKED: invalid year "' + raw + '"');
+        return;
+      }
+      state.yil = raw;
+      const result = { ad: state.ad, soyad: state.soyad, mezuniyetYili: n };
+      out.textContent = JSON.stringify(result, null, 2);
+      window.__QA_RESULT__ = result;
+      log('SUBMIT: ' + JSON.stringify(result));
+      document.dispatchEvent(new CustomEvent('qa:submit', { detail: result }));
+    });
+
+    return form;
+  };
+
+  /* ---------- Boot ---------- */
+  window.__QA_DOM_AT_LOAD__ = { step2InputsAtLoad: 0 };
+  stage.appendChild(buildStep1());
+  setStep(1);
+  log('PAGE LOADED: only step 1 rendered');
+  probe('initial load');
+
+  new MutationObserver((muts) => {
+    muts.forEach((m) => m.addedNodes.forEach((n) => {
+      if (n.nodeType !== 1) return;
+      const found = n.matches && n.matches('input') ? [n] : Array.from(n.querySelectorAll ? n.querySelectorAll('input') : []);
+      found.forEach((i) => log('MUTATION: <input id="' + (i.id || '') + '"> added to DOM'));
+    }));
+  }).observe(stage, { childList: true, subtree: true });
+})();
+</script>
+</body>
+</html>
